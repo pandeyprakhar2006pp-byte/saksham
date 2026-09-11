@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { ExamTopBar } from "@/components/ExamTopBar"
 import { QuestionPalette } from "@/components/QuestionPalette"
 import { AccessibilityBar } from "@/components/AccessibilityBar"
@@ -18,6 +18,7 @@ export default function ExamPage() {
   const exam = useExamState()
   const timer = useTimer(INITIAL_TIMER_SECONDS)
   const tts = useTextToSpeech()
+  const [sessionId] = useState(() => "saksham-session-2026")
 
   // ── Auto-read question whenever it changes (voice mode only) ──────────────
   // Also fires on initial mount because exam.current starts at 0.
@@ -168,6 +169,8 @@ export default function ExamPage() {
           <MediaPanel
             mode={exam.mode}
             question={exam.question}
+            questionNumber={exam.questionNumber}
+            sessionId={sessionId}
             islCaption={exam.islCaption}
             onGestureConfirmed={handleGoNext}
             onSelectOption={handleSelectOption}
@@ -177,6 +180,7 @@ export default function ExamPage() {
             onMarkReview={handleMarkReview}
             onReread={handleReread}
             onSpeakAnswer={handleSpeakAnswer}
+            onModeChange={exam.setMode}
           />
         </div>
         <CaptionBar text={exam.captionText} active={exam.mode !== "key"} />

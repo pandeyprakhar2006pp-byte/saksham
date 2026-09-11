@@ -14,12 +14,15 @@ import {
 import { useGestureDemo } from "@/hooks/useGestureDemo"
 import { useTextToSpeech } from "@/hooks/useTextToSpeech"
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition"
+import { ISLGestureRecognizer } from "@/components/ISLGestureRecognizer"
 import type { ExamMode, MediaTab, Question } from "@/types"
 import styles from "./MediaPanel.module.css"
 
 interface MediaPanelProps {
   mode: ExamMode
   question: Question
+  questionNumber?: number
+  sessionId?: string
   islCaption: string
   onGestureConfirmed: () => void
   onSelectOption: (index: number) => void
@@ -29,11 +32,12 @@ interface MediaPanelProps {
   onMarkReview: () => void
   onReread: () => void
   onSpeakAnswer: () => void
+  onModeChange?: (mode: ExamMode) => void
 }
 
 const TABS: { id: MediaTab; label: string; Icon: typeof VideoIcon }[] = [
-  { id: "isl", label: "Interpreter", Icon: VideoIcon },
-  { id: "cam", label: "Camera", Icon: CameraIcon },
+  { id: "cam", label: "Gesture Camera", Icon: CameraIcon },
+  { id: "isl", label: "ISL Interpreter", Icon: VideoIcon },
 ]
 
 const SPEEDS = [1, 1.25, 1.5, 0.75]
@@ -45,6 +49,8 @@ function optionLetter(index: number) {
 export function MediaPanel({
   mode,
   question,
+  questionNumber = 1,
+  sessionId = "session-saksham-2026",
   islCaption,
   onGestureConfirmed,
   onSelectOption,
@@ -54,9 +60,20 @@ export function MediaPanel({
   onMarkReview,
   onReread,
   onSpeakAnswer,
+  onModeChange,
 }: MediaPanelProps) {
   if (mode === "sign") {
-    return <InterpreterPanel question={question} islCaption={islCaption} onGestureConfirmed={onGestureConfirmed} />
+    return (
+      <InterpreterPanel
+        question={question}
+        questionNumber={questionNumber}
+        sessionId={sessionId}
+        islCaption={islCaption}
+        onGestureConfirmed={onGestureConfirmed}
+        onSelectOption={onSelectOption}
+        onModeChange={onModeChange}
+      />
+    )
   }
 
   if (mode === "key") {
@@ -81,27 +98,25 @@ export function MediaPanel({
 
 function InterpreterPanel({
   question,
+  questionNumber,
+  sessionId,
   islCaption,
   onGestureConfirmed,
+  onSelectOption,
+  onModeChange,
 }: {
   question: Question
+  questionNumber: number
+  sessionId: string
   islCaption: string
   onGestureConfirmed: () => void
+  onSelectOption: (index: number) => void
+  onModeChange?: (mode: ExamMode) => void
 }) {
-  const [tab, setTab] = useState<MediaTab>("isl")
+  const [tab, setTab] = useState<MediaTab>("cam")
   const [captionsOn, setCaptionsOn] = useState(true)
   const [speedIndex, setSpeedIndex] = useState(0)
-  const gesture = useGestureDemo()
   const tts = useTextToSpeech()
-
-  function handleStart() {
-    gesture.start()
-  }
-
-  function handleDetectedConfirm() {
-    onGestureConfirmed()
-    gesture.reset()
-  }
 
   function handlePlay() {
     tts.speak(question.q, { rate: SPEEDS[speedIndex] })
@@ -136,7 +151,16 @@ function InterpreterPanel({
         })}
       </div>
 
-      {tab === "isl" ? (
+      {tab === "cam" ? (
+        <ISLGestureRecognizer
+          sessionId={sessionId}
+          questionId={questionNumber}
+          onOptionSelected={(index) => onSelectOption(index)}
+          onSubmitted={() => onGestureConfirmed()}
+          onFallbackToKeyboard={() => onModeChange?.("key")}
+          onFallbackToVoice={() => onModeChange?.("voice")}
+        />
+      ) : (
         <div className={styles.panelBody} role="tabpanel">
           <div className={styles.islScreen}>
             <SignLanguageIcon size={52} aria-hidden="true" />
@@ -163,29 +187,6 @@ function InterpreterPanel({
           >
             <ClosedCaptionIcon aria-hidden="true" /> CC
           </button>
-        </div>
-      ) : (
-        <div className={styles.panelBody} role="tabpanel">
-          <div className={styles.camScreen}>
-            <CameraIcon size={40} aria-hidden="true" />
-            <div className={styles.progressTrack} aria-hidden="true">
-              <div className={styles.progressFill} style={{ width: `${gesture.progress}%` }} />
-            </div>
-          </div>
-          <p className={styles.pillText} role="status">
-            {gesture.pillText}
-          </p>
-          <div className={styles.camActions}>
-            {!gesture.detected ? (
-              <button type="button" className={styles.camBtn} onClick={handleStart}>
-                Simulate hand sign
-              </button>
-            ) : (
-              <button type="button" className={styles.camBtnConfirm} onClick={handleDetectedConfirm}>
-                Confirm answer &amp; continue
-              </button>
-            )}
-          </div>
         </div>
       )}
     </aside>
