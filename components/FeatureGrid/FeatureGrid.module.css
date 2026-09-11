@@ -1,0 +1,87 @@
+.section {
+  padding: 5rem 0;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header {
+  max-width: 42rem;
+  margin: 0 auto 3rem;
+  text-align: center;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  margin: 0 0 0.75rem;
+}
+
+.heading {
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  line-height: 1.2;
+  margin: 0;
+  color: var(--color-ink);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.75rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--card-accent, var(--color-primary));
+}
+
+.card.primary {
+  --card-accent: var(--color-primary);
+}
+
+.card.teal {
+  --card-accent: var(--color-teal);
+}
+
+.card.emerald {
+  --card-accent: var(--color-emerald);
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-md);
+  background: var(--card-accent, var(--color-primary));
+  color: var(--color-on-accent);
+}
+
+.cardTitle {
+  font-size: 1.1rem;
+  margin: 0;
+  color: var(--color-ink);
+}
+
+.cardDesc {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--color-ink-soft);
+  margin: 0;
+}

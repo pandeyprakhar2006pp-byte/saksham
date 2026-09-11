@@ -1,0 +1,88 @@
+.bar {
+  background: var(--color-ink);
+  color: #fff;
+  font-size: 0.85rem;
+}
+
+[data-contrast="high"] .bar {
+  background: var(--color-surface);
+  border-bottom: 2px solid var(--color-border);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding-top: 9px;
+  padding-bottom: 9px;
+  flex-wrap: wrap;
+}
+
+.a11yBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: inherit;
+  font: inherit;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+
+[data-contrast="high"] .a11yBtn {
+  border-color: var(--color-border);
+}
+
+.a11yBtn[aria-pressed="true"] {
+  background: var(--color-primary-light);
+  color: #0a1b33;
+  border-color: var(--color-primary-light);
+  font-weight: 700;
+}
+
+.a11yBtn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.fsGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  padding: 2px;
+}
+
+[data-contrast="high"] .fsGroup {
+  border-color: var(--color-border);
+}
+
+.fsGroup button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.fsGroup button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.hint {
+  opacity: 0.7;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}

@@ -1,0 +1,91 @@
+.split {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.col {
+  padding: 44px 40px;
+}
+
+.col + .col {
+  border-left: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+}
+
+.heading {
+  font-size: 1.3rem;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.ico svg {
+  width: 18px;
+  height: 18px;
+}
+
+.icoProblem {
+  background: var(--color-error-soft);
+  color: var(--color-error);
+}
+
+.icoSolution {
+  background: var(--color-emerald-soft);
+  color: var(--color-emerald);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.list li {
+  display: flex;
+  gap: 12px;
+  color: var(--color-ink-soft);
+  font-size: 1rem;
+}
+
+.list li::before {
+  content: "\2014";
+  color: var(--color-ink);
+  flex: none;
+}
+
+.stat {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .col + .col {
+    border-left: 0;
+    border-top: 1px solid var(--color-border);
+  }
+}

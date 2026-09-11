@@ -1,0 +1,474 @@
+.wrap {
+  border-left: 1px solid var(--color-border);
+  background: var(--color-surface);
+  padding: 1.25rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.panelHeading {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 1.05rem;
+  margin: 0 0 1.25rem;
+}
+
+.panelHeading svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color-ink-soft);
+}
+
+/* ---------- Interpreter (sign) tabs ---------- */
+
+.tabs {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.3rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  margin-bottom: 1.25rem;
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--color-ink-soft);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.tab svg {
+  width: 15px;
+  height: 15px;
+}
+
+.tabActive {
+  background: var(--color-bg);
+  color: var(--color-teal);
+  box-shadow: 0 1px 3px rgba(17, 24, 39, 0.12);
+}
+
+[data-contrast="high"] .tabActive {
+  box-shadow: none;
+  border: 1.5px solid var(--color-teal);
+}
+
+.panelBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.islScreen,
+.camScreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-lg);
+  background: #0b1220;
+  color: #ffffff;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+[data-contrast="high"] .islScreen,
+[data-contrast="high"] .camScreen {
+  border: 2px solid var(--color-border);
+}
+
+.signingCaption {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 22ch;
+}
+
+.playbackRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.playBtn,
+.replayBtn,
+.speedBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+.playBtn svg,
+.replayBtn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.playBtn {
+  background: var(--color-emerald);
+  border-color: var(--color-emerald);
+  color: #fff;
+  flex: 1;
+  justify-content: center;
+}
+
+[data-contrast="high"] .playBtn {
+  color: var(--color-on-accent);
+}
+
+.replayBtn {
+  flex: 1;
+  justify-content: center;
+}
+
+.speedBtn {
+  font-family: var(--font-mono);
+  flex: none;
+}
+
+.ccBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--color-teal);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.ccBtn svg {
+  width: 15px;
+  height: 15px;
+}
+
+[data-contrast="high"] .ccBtn {
+  color: var(--color-on-accent);
+}
+
+.ccBtn[aria-pressed="false"] {
+  background: var(--color-surface-alt);
+  color: var(--color-ink-soft);
+  border: 1.5px solid var(--color-border);
+}
+
+.progressTrack {
+  width: 70%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-teal);
+  transition: width 0.1s linear;
+}
+
+.pillText {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-ink-soft);
+  text-align: center;
+}
+
+.camActions {
+  display: flex;
+  justify-content: center;
+}
+
+.camBtn,
+.camBtnConfirm {
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+.camBtnConfirm {
+  background: var(--color-emerald);
+  border-color: var(--color-emerald);
+  color: #fff;
+}
+
+[data-contrast="high"] .camBtnConfirm {
+  color: var(--color-on-accent);
+}
+
+/* ---------- Voice mode ---------- */
+
+.listeningRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-bg);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.listeningRow:hover:not(:disabled) {
+  border-color: var(--color-emerald);
+}
+
+.listeningRowActive {
+  border-color: var(--color-emerald);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.listeningRow svg {
+  width: 15px;
+  height: 15px;
+}
+
+.listeningIcon {
+  color: var(--color-emerald);
+}
+
+.idleIcon {
+  color: var(--color-ink-soft);
+}
+
+.listeningText {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-emerald);
+}
+
+.idleText {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-ink-soft);
+}
+
+.voiceError {
+  margin: -0.5rem 0 1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+/* ---------- Permission screens ---------- */
+
+.permissionScreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+  padding: 1.5rem 0.5rem 1rem;
+}
+
+.permTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.permDesc {
+  margin: 0;
+  font-size: 0.83rem;
+  color: var(--color-ink-soft);
+  line-height: 1.55;
+  max-width: 26ch;
+}
+
+.permIconIdle {
+  color: var(--color-primary);
+  width: 36px;
+  height: 36px;
+}
+
+.permIconDenied {
+  color: #ef4444;
+  width: 36px;
+  height: 36px;
+}
+
+.permIconUnavailable {
+  color: var(--color-ink-soft);
+  width: 36px;
+  height: 36px;
+}
+
+.permAllowBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.2rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 0.25rem;
+}
+
+.permAllowBtn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.permAllowBtn:hover {
+  opacity: 0.9;
+}
+
+[data-contrast="high"] .permAllowBtn {
+  color: var(--color-on-accent);
+}
+
+.permSteps {
+  margin: 0;
+  padding-left: 1.25rem;
+  text-align: left;
+  font-size: 0.82rem;
+  color: var(--color-ink-soft);
+  line-height: 1.7;
+}
+
+.permDivider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 1rem 0 0.75rem;
+}
+
+.inputBox {
+  margin: 0 0 1.5rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  color: var(--color-ink-soft);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  min-height: 3.4rem;
+}
+
+.commandLabel {
+  margin: 0 0 0.75rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+  color: var(--color-ink-soft);
+}
+
+.commandList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.commandCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  text-align: left;
+}
+
+.commandPhrase {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-emerald);
+}
+
+.commandDesc {
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+}
+
+/* ---------- Keyboard mode ---------- */
+
+.kbList {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.kbRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.kbLabel {
+  font-size: 0.85rem;
+  color: var(--color-ink);
+}
+
+.kbKeys {
+  display: flex;
+  gap: 0.3rem;
+  flex: none;
+}
+
+.kbKey {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-ink-soft);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 0.2rem 0.45rem;
+}
+
+.kbNote {
+  margin: auto 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+  line-height: 1.5;
+}

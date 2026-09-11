@@ -1,0 +1,120 @@
+.section {
+  padding: 5rem 0;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.header {
+  max-width: 40rem;
+  margin: 0 auto 3rem;
+  text-align: center;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-emerald);
+  margin: 0 0 0.75rem;
+}
+
+.heading {
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  margin: 0;
+  color: var(--color-ink);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+@media (max-width: 900px) {
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background: var(--color-emerald-soft);
+  color: var(--color-emerald);
+}
+
+.cardTitle {
+  font-size: 1.05rem;
+  margin: 0;
+  color: var(--color-ink);
+}
+
+.cardDesc {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+  margin: 0;
+}
+
+.stack {
+  padding: 1.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+}
+
+.stackHeading {
+  font-size: 1rem;
+  margin: 0 0 1.1rem;
+  color: var(--color-ink);
+}
+
+.stackList {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1.25rem;
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .stackList {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.stackItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.stackLabel {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.stackValue {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
