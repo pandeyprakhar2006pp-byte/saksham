@@ -18,6 +18,9 @@ export function SiteHeader() {
           ))}
         </div>
         <div className={styles.navCta}>
+          <LinkButton href="/login" size="sm" variant="ghost">
+            Candidate Login
+          </LinkButton>
           <LinkButton href="/exam" size="sm">
             Try the demo exam
           </LinkButton>

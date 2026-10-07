@@ -1,6 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { ExamTopBar } from "@/components/ExamTopBar"
 import { QuestionPalette } from "@/components/QuestionPalette"
 import { AccessibilityBar } from "@/components/AccessibilityBar"
@@ -14,11 +15,13 @@ import { useTextToSpeech } from "@/hooks/useTextToSpeech"
 import { INITIAL_TIMER_SECONDS } from "@/config/questions"
 import styles from "./exam.module.css"
 
-export default function ExamPage() {
+function ExamInner() {
+  const searchParams = useSearchParams()
+  const paramSessionId = searchParams?.get("sessionId")
   const exam = useExamState()
   const timer = useTimer(INITIAL_TIMER_SECONDS)
   const tts = useTextToSpeech()
-  const [sessionId] = useState(() => "saksham-session-2026")
+  const [sessionId] = useState(() => paramSessionId || "saksham-session-2026")
 
   // ── Auto-read question whenever it changes (voice mode only) ──────────────
   // Also fires on initial mount because exam.current starts at 0.
@@ -186,6 +189,14 @@ export default function ExamPage() {
         <CaptionBar text={exam.captionText} active={exam.mode !== "key"} />
       </div>
     </>
+  )
+}
+
+export default function ExamPage() {
+  return (
+    <Suspense fallback={null}>
+      <ExamInner />
+    </Suspense>
   )
 }
 

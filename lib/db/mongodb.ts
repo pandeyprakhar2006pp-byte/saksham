@@ -15,6 +15,46 @@ export interface ExamSubmissionRecord {
   metadata?: Record<string, unknown>
 }
 
+export interface CandidateRecord {
+  candidateId: string
+  rollNumber: string
+  fingerprintId: number
+  name: string
+  category: string
+}
+
+// Pre-seeded verified candidates for biometric ESP32 kiosks and exam login
+const SEED_CANDIDATES: CandidateRecord[] = [
+  {
+    candidateId: "CAND-2026-001",
+    rollNumber: "SAK-2026-001",
+    fingerprintId: 1,
+    name: "Aarav Sharma",
+    category: "Visual Impairment (Low Vision)",
+  },
+  {
+    candidateId: "CAND-2026-002",
+    rollNumber: "SAK-2026-002",
+    fingerprintId: 2,
+    name: "Priya Patel",
+    category: "Hearing Impairment",
+  },
+  {
+    candidateId: "CAND-2026-003",
+    rollNumber: "SAK-2026-003",
+    fingerprintId: 3,
+    name: "Rohan Verma",
+    category: "Locomotor Disability",
+  },
+  {
+    candidateId: "CAND-2026-004",
+    rollNumber: "SAK-2026-004",
+    fingerprintId: 4,
+    name: "Ananya Iyer",
+    category: "Speech & Hearing",
+  },
+]
+
 // In-memory collection fallback for local development or when MONGODB_URI is not provided
 const inMemorySubmissions: ExamSubmissionRecord[] = []
 
@@ -108,6 +148,31 @@ class ExamDatabase {
    */
   async getFlaggedSubmissions(): Promise<ExamSubmissionRecord[]> {
     return inMemorySubmissions.filter((s) => s.requiresHumanReview)
+  }
+
+  /**
+   * Looks up a registered candidate by their biometric fingerprint ID (matched by ESP32 kiosk)
+   */
+  async findCandidateByFingerprintId(fingerprintId: number | string): Promise<CandidateRecord | null> {
+    const idNum = typeof fingerprintId === "string" ? parseInt(fingerprintId, 10) : fingerprintId
+    const candidate = SEED_CANDIDATES.find((c) => c.fingerprintId === idNum)
+    return candidate ?? null
+  }
+
+  /**
+   * Looks up a registered candidate by their exam roll number (for manual OTP login)
+   */
+  async findCandidateByRollNumber(rollNumber: string): Promise<CandidateRecord | null> {
+    const cleanRoll = rollNumber.trim().toUpperCase()
+    const candidate = SEED_CANDIDATES.find((c) => c.rollNumber.toUpperCase() === cleanRoll)
+    return candidate ?? null
+  }
+
+  /**
+   * Retrieves all registered candidates (for testing and verification)
+   */
+  async getAllCandidates(): Promise<CandidateRecord[]> {
+    return SEED_CANDIDATES
   }
 }
 

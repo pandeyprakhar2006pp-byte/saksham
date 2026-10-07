@@ -69,6 +69,29 @@ class RedisSessionManager {
   }
 
   /**
+   * Initializes a new exam session specifically for a newly authenticated candidate
+   */
+  async createSessionForCandidate(
+    sessionId: string,
+    candidateId: string,
+    candidateName: string,
+  ): Promise<ExamSessionState> {
+    const session: ExamSessionState = {
+      sessionId,
+      candidateId,
+      candidateName,
+      currentQuestionIndex: 0,
+      totalQuestions: QUESTIONS.length,
+      answers: {},
+      startedAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+      status: "active",
+    }
+    inMemorySessions.set(sessionId, session)
+    return session
+  }
+
+  /**
    * Records an answer and advances the candidate's question pointer in Redis
    */
   async saveAnswerAndAdvance(

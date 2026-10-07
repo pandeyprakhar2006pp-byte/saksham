@@ -1,0 +1,544 @@
+.page {
+  min-height: 100vh;
+  background: #070d18;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: var(--font-body), sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-contrast="high"] .page {
+  background: #000000;
+  color: #ffffff;
+}
+
+/* Background ambient glow */
+.bgGlow {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(79, 209, 165, 0.12) 0%, rgba(7, 13, 24, 0) 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Header */
+.header {
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 10;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: #ffffff;
+}
+
+.logoBadge {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  background: #4fd1a5;
+  color: #070d18;
+  font-weight: 800;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  box-shadow: 0 4px 14px rgba(79, 209, 165, 0.35);
+}
+
+.brandText {
+  font-weight: 800;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.kioskTag {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.kioskDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4fd1a5;
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.85); }
+}
+
+/* Main Container */
+.main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  position: relative;
+  z-index: 10;
+}
+
+/* Card */
+.card {
+  width: 100%;
+  max-width: 480px;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  transition: all 0.25s ease;
+}
+
+[data-contrast="high"] .card {
+  background: #0a0a0a;
+  border: 2px solid #ffffff;
+  box-shadow: none;
+}
+
+/* Headings & Text */
+.heading {
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #ffffff;
+  margin: 0;
+}
+
+.subtext {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.5;
+  max-width: 36ch;
+}
+
+[data-contrast="high"] .subtext {
+  color: #f2f2f2;
+}
+
+/* ============================================================================
+   1. WAITING STATE: BIOMETRIC SCANNER ANIMATION
+   ============================================================================ */
+.scannerContainer {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.5rem 0;
+}
+
+/* Outer Pulsing Wave Rings */
+.pulseRing1,
+.pulseRing2,
+.pulseRing3 {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid #4fd1a5;
+  pointer-events: none;
+}
+
+.pulseRing1 {
+  animation: wavePulse 2.4s infinite cubic-bezier(0.2, 0.6, 0.4, 1);
+}
+
+.pulseRing2 {
+  animation: wavePulse 2.4s infinite cubic-bezier(0.2, 0.6, 0.4, 1);
+  animation-delay: 0.8s;
+}
+
+.pulseRing3 {
+  animation: wavePulse 2.4s infinite cubic-bezier(0.2, 0.6, 0.4, 1);
+  animation-delay: 1.6s;
+}
+
+@keyframes wavePulse {
+  0% {
+    transform: scale(0.75);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+/* Center biometric pad */
+.sensorPad {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #132738 0%, #0c1a26 100%);
+  border: 2px solid #4fd1a5;
+  box-shadow: 0 0 25px rgba(79, 209, 165, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4fd1a5;
+  overflow: hidden;
+}
+
+[data-contrast="high"] .sensorPad {
+  background: #000;
+  border: 3px solid #5cffa0;
+  color: #5cffa0;
+  box-shadow: none;
+}
+
+/* Moving vertical laser scanline */
+.scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #4fd1a5, transparent);
+  box-shadow: 0 0 8px #4fd1a5;
+  animation: scanMove 2s infinite ease-in-out;
+}
+
+@keyframes scanMove {
+  0%, 100% {
+    top: 15%;
+    opacity: 0.2;
+  }
+  50% {
+    top: 80%;
+    opacity: 1;
+  }
+}
+
+.timerPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ============================================================================
+   2. SUCCESS STATE: CELEBRATION & CHECKMARK ANIMATION
+   ============================================================================ */
+.successCircle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: rgba(79, 209, 165, 0.15);
+  border: 2px solid #4fd1a5;
+  color: #4fd1a5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 35px rgba(79, 209, 165, 0.4);
+  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+[data-contrast="high"] .successCircle {
+  background: #00330f;
+  border: 3px solid #5cffa0;
+  color: #5cffa0;
+  box-shadow: none;
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.successCandidate {
+  font-weight: 800;
+  color: #4fd1a5;
+  display: block;
+  font-size: 1.75rem;
+  margin-top: 0.25rem;
+}
+
+/* ============================================================================
+   3. FAIL / TIMEOUT STATE
+   ============================================================================ */
+.failCircle {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.12);
+  border: 2px solid #ef4444;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: shake 0.5s ease-in-out;
+}
+
+[data-contrast="high"] .failCircle {
+  background: #3a0f0c;
+  border: 3px solid #ff7a6e;
+  color: #ff7a6e;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.failTitleHinglish {
+  font-size: 0.95rem;
+  color: #f87171;
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+
+.actionButtonGroup {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+/* ============================================================================
+   BUTTONS & LINKS
+   ============================================================================ */
+.btnPrimary {
+  width: 100%;
+  padding: 0.85rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  background: #4fd1a5;
+  color: #070d18;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+.btnPrimary:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+[data-contrast="high"] .btnPrimary {
+  background: #ffd400;
+  color: #000000;
+  border: 2px solid #ffffff;
+}
+
+.btnSecondary {
+  width: 100%;
+  padding: 0.8rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background 0.15s ease;
+}
+
+.btnSecondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+[data-contrast="high"] .btnSecondary {
+  border: 2px solid #ffffff;
+  background: #000;
+  color: #fff;
+}
+
+.linkFallback {
+  background: transparent;
+  border: none;
+  color: #4fd1a5;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  padding: 0.25rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: opacity 0.15s ease;
+}
+
+.linkFallback:hover {
+  opacity: 0.8;
+}
+
+[data-contrast="high"] .linkFallback {
+  color: #5cffa0;
+}
+
+/* ============================================================================
+   4. MANUAL LOGIN FORM
+   ============================================================================ */
+.manualForm {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  text-align: left;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fieldLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(15, 23, 42, 0.6);
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.15s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #4fd1a5;
+  box-shadow: 0 0 0 2px rgba(79, 209, 165, 0.25);
+}
+
+[data-contrast="high"] .input {
+  background: #000;
+  border: 2px solid #ffffff;
+}
+
+[data-contrast="high"] .input:focus {
+  outline: 3px solid #ffd400;
+}
+
+.formError {
+  font-size: 0.82rem;
+  color: #f87171;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.infoBox {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ============================================================================
+   DEV KIOSK SIMULATOR (NON-INTRUSIVE TESTING DRAWER)
+   ============================================================================ */
+.simulatorBar {
+  padding: 0.85rem 1.5rem;
+  background: rgba(15, 23, 42, 0.9);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  z-index: 10;
+}
+
+.simBtn {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(79, 209, 165, 0.12);
+  border: 1px solid rgba(79, 209, 165, 0.3);
+  color: #4fd1a5;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+}
+
+.simBtn:hover {
+  background: rgba(79, 209, 165, 0.22);
+}
+
+.simBtnSecondary {
+  font-size: 0.78rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.simBtnSecondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
