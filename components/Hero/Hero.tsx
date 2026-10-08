@@ -8,7 +8,7 @@ export function Hero() {
     <section className={styles.hero} id="home">
       <Container className={styles.grid}>
         <div>
-          <span className={styles.eyebrow}>Smart India Hackathon 2026 &middot; Team Stag</span>
+          <span className={styles.eyebrow}>Team Stag &middot; Inclusive Exam System</span>
           <h1 className={styles.heading}>
             Empowering every mind<span className={styles.accent}>.</span>
           </h1>

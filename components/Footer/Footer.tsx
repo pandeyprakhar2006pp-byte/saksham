@@ -8,7 +8,7 @@ export function Footer() {
       <Container className={styles.inner}>
         <div>
           <p className={styles.brand}>SAKSHAM</p>
-          <p className={styles.tagline}>Built for Smart India Hackathon 2026 by Team Stag.</p>
+          <p className={styles.tagline}>Inclusive digital examination platform by Team Stag.</p>
         </div>
         <div className={styles.ctaBlock}>
           <p className={styles.ctaText}>Want to see it in action?</p>

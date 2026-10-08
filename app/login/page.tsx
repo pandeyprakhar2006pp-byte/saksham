@@ -1,216 +1,157 @@
 "use client"
 
-import React, { useCallback, useEffect, useRef, useState } from "react"
+import React, { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { AccessibilityBar } from "@/components/AccessibilityBar"
-import {
-  DEFAULT_KIOSK_DEVICE_ID,
-  KIOSK_POLL_INTERVAL_MS,
-  KIOSK_TIMEOUT_SECONDS,
-  DEMO_OTP,
-} from "@/config/kiosk"
+import { OperatorDeviceControl } from "@/components/OperatorDeviceControl"
+import { arduinoDeviceManager } from "@/lib/hardware/deviceManager"
+import type { CandidateAdmissionState, DeviceStatusInfo } from "@/lib/hardware/types"
 import {
   CheckIcon,
   AlertTriangleIcon,
-  ArrowRightIcon,
   ReplayIcon,
-  KeyboardIcon,
   ShieldIcon,
+  ArrowRightIcon,
 } from "@/components/ui/icons"
 import styles from "./login.module.css"
-
-type LoginUIState = "WAITING" | "SUCCESS" | "FAIL" | "MANUAL"
 
 export default function LoginPage() {
   const router = useRouter()
 
-  // Main UI State: "WAITING" (default) | "SUCCESS" | "FAIL" | "MANUAL"
-  const [uiState, setUiState] = useState<LoginUIState>("WAITING")
+  // Hardware Connection & Admission State
+  const [deviceInfo, setDeviceInfo] = useState<DeviceStatusInfo>(() =>
+    arduinoDeviceManager.getStatus(),
+  )
+  const [admissionState, setAdmissionState] = useState<CandidateAdmissionState>(() => {
+    const s = arduinoDeviceManager.getStatus().status
+    if (s === "ready") return "ready"
+    if (s === "connecting") return "connecting"
+    return "disconnected"
+  })
 
-  // Authentication & Session data
-  const [candidateName, setCandidateName] = useState<string>("")
-  const [sessionId, setSessionId] = useState<string>("")
-  const [secondsRemaining, setSecondsRemaining] = useState<number>(KIOSK_TIMEOUT_SECONDS)
+  // Candidate Admission Details
+  const [candidateData, setCandidateData] = useState<{
+    candidateId: string
+    rollNumber: string
+    name: string
+    category: string
+    examCode: string
+  } | null>(null)
+
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [eligibilityStatus, setEligibilityStatus] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState<string>(
-    "Place your thumb on the scanner. Waiting for kiosk to read your fingerprint.",
+    "Arduino fingerprint reader login page. Connect device to begin.",
   )
 
-  // Manual fallback form state
-  const [rollNumber, setRollNumber] = useState<string>("SAK-2026-001")
-  const [otp, setOtp] = useState<string>("")
-  const [otpSent, setOtpSent] = useState<boolean>(false)
-  const [manualLoading, setManualLoading] = useState<boolean>(false)
-  const [manualError, setManualError] = useState<string | null>(null)
-  const [demoOtpHint, setDemoOtpHint] = useState<string | null>(null)
+  // Administrator Override Modal State
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false)
+  const [adminRollNumber, setAdminRollNumber] = useState<string>("SAK-2026-001")
+  const [adminPin, setAdminPin] = useState<string>("")
+  const [adminReason, setAdminReason] = useState<string>(
+    "Optical fingerprint sensor hardware failure; hall ticket and government ID verified manually by invigilator.",
+  )
+  const [adminError, setAdminError] = useState<string | null>(null)
+  const [adminSubmitting, setAdminSubmitting] = useState<boolean>(false)
 
-  // Polling ref
-  const pollTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const countdownTimerRef = useRef<NodeJS.Timeout | null>(null)
+  // Operator panel toggle
+  const [showOperatorPanel, setShowOperatorPanel] = useState<boolean>(true)
 
-  // ── 1. Background Polling: GET /api/auth/status?deviceId=... ───────────────
-  const pollStatus = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/auth/status?deviceId=${encodeURIComponent(DEFAULT_KIOSK_DEVICE_ID)}`, {
-        cache: "no-store",
-      })
-
-      if (!res.ok) {
-        // Tolerates patchy network; will retry on next tick
-        return
-      }
-
-      const data = await res.json()
-
-      if (data.matched && data.sessionId && data.candidateName) {
-        // Success match arrived from ESP32 kiosk!
-        setCandidateName(data.candidateName)
-        setSessionId(data.sessionId)
-        setUiState("SUCCESS")
-        setAnnouncement(`Welcome, ${data.candidateName}. Fingerprint verified. Starting your exam.`)
-      }
-    } catch {
-      // Gracefully ignore fetch network drops; retries on next tick
-    }
-  }, [])
-
-  // ── 2. Polling Lifecycle & 45s Countdown in WAITING state ───────────────────
+  // Sync with Arduino Device Manager
   useEffect(() => {
-    if (uiState !== "WAITING") {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current)
-      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)
-      return
-    }
+    const unsubscribe = arduinoDeviceManager.subscribe(() => {
+      const updated = arduinoDeviceManager.getStatus()
+      setDeviceInfo(updated)
 
-    // Reset countdown
-    setSecondsRemaining(KIOSK_TIMEOUT_SECONDS)
-    setAnnouncement("Place your thumb on the scanner. Waiting for kiosk to read your fingerprint.")
-
-    // Poll every 2 seconds
-    pollTimerRef.current = setInterval(() => {
-      pollStatus()
-    }, KIOSK_POLL_INTERVAL_MS)
-
-    // Initial check immediately on mount
-    pollStatus()
-
-    // 45s countdown timer
-    countdownTimerRef.current = setInterval(() => {
-      setSecondsRemaining((prev) => {
-        if (prev <= 1) {
-          // Timeout reached: Switch to FAIL state
-          setUiState("FAIL")
-          setAnnouncement("No scan detected after 45 seconds. Try again or use roll number.")
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-
-    return () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current)
-      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)
-    }
-  }, [uiState, pollStatus])
-
-  // ── 3. Auto-Redirect in SUCCESS state ───────────────────────────────────────
-  useEffect(() => {
-    if (uiState !== "SUCCESS" || !sessionId) return
-
-    const redirectTimer = setTimeout(() => {
-      router.push(`/exam?sessionId=${encodeURIComponent(sessionId)}`)
-    }, 1500)
-
-    return () => clearTimeout(redirectTimer)
-  }, [uiState, sessionId, router])
-
-  // ── 4. Manual Login Handlers (Roll Number + OTP) ───────────────────────────
-  async function handleSendOtp(e: React.FormEvent) {
-    e.preventDefault()
-    if (!rollNumber.trim()) {
-      setManualError("Please enter your roll number.")
-      return
-    }
-
-    setManualLoading(true)
-    setManualError(null)
-
-    try {
-      const res = await fetch("/api/auth/manual", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "send-otp", rollNumber: rollNumber.trim() }),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok || !data.success) {
-        setManualError(data.message || "Could not find roll number.")
-      } else {
-        setOtpSent(true)
-        setDemoOtpHint(data.demoOtp || DEMO_OTP)
-        setAnnouncement(`OTP sent for ${data.candidateName}. Enter 6-digit OTP.`)
+      if (updated.status === "disconnected") {
+        setAdmissionState("disconnected")
+        setAnnouncement("Arduino fingerprint scanner is disconnected.")
+      } else if (updated.status === "connecting") {
+        setAdmissionState("connecting")
+        setAnnouncement("Connecting to Arduino fingerprint reader…")
+      } else if (updated.status === "ready" && (admissionState === "disconnected" || admissionState === "connecting")) {
+        setAdmissionState("ready")
+        setAnnouncement("Arduino reader is ready. Place finger on optical prism.")
       }
-    } catch {
-      setManualError("Network error sending OTP. Please try again.")
-    } finally {
-      setManualLoading(false)
-    }
-  }
+    })
+    return () => unsubscribe()
+  }, [admissionState])
 
-  async function handleVerifyOtp(e: React.FormEvent) {
+  // Trigger Biometric Scan & Two-Tier Admission Verification
+  const handleTriggerScan = useCallback(async () => {
+    if (deviceInfo.status !== "ready") return
+
+    setAdmissionState("verifying")
+    setErrorMessage(null)
+    setEligibilityStatus(null)
+    setAnnouncement("Finger detected. Reading biometric template and verifying exam eligibility…")
+
+    const result = await arduinoDeviceManager.verifyAndAdmitCandidate()
+
+    if (result.admitted && result.candidate && result.sessionId) {
+      // Both Tier 1 (Fingerprint) and Tier 2 (Eligibility) passed!
+      setCandidateData(result.candidate)
+      setAdmissionState("verified")
+      setAnnouncement(
+        `Welcome, ${result.candidate.name}. Biometric verified and exam eligibility confirmed. Starting exam.`,
+      )
+
+      // Auto-redirect to /exam after 1.5 seconds
+      setTimeout(() => {
+        router.push(`/exam?sessionId=${encodeURIComponent(result.sessionId!)}`)
+      }, 1500)
+    } else {
+      // Verification Failed (Biometric Mismatch OR Eligibility Rejection)
+      setAdmissionState("verification_failed")
+      setErrorMessage(result.error || "Authentication failed. Could not admit candidate.")
+      setEligibilityStatus(result.eligibilityStatus || null)
+      setAnnouncement(result.error || "Authentication failed.")
+    }
+  }, [deviceInfo.status, router])
+
+  // Administrator Override Submission
+  async function handleAdminOverride(e: React.FormEvent) {
     e.preventDefault()
-    if (!otp.trim()) {
-      setManualError("Please enter the 6-digit OTP.")
+    if (!adminRollNumber.trim() || !adminPin.trim() || !adminReason.trim()) {
+      setAdminError("Please fill out all required fields.")
       return
     }
 
-    setManualLoading(true)
-    setManualError(null)
+    setAdminSubmitting(true)
+    setAdminError(null)
 
     try {
-      const res = await fetch("/api/auth/manual", {
+      const res = await fetch("/api/hardware/admin-override", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "verify-otp",
-          rollNumber: rollNumber.trim(),
-          otp: otp.trim(),
+          rollNumber: adminRollNumber.trim(),
+          adminPin: adminPin.trim(),
+          overrideReason: adminReason.trim(),
         }),
       })
 
       const data = await res.json()
 
-      if (!res.ok || !data.success) {
-        setManualError(data.message || "Invalid OTP. Please check and try again.")
+      if (!res.ok || !data.admitted) {
+        setAdminError(data.message || "Administrator override was rejected.")
       } else {
-        setCandidateName(data.candidateName)
-        setSessionId(data.sessionId)
-        setUiState("SUCCESS")
-        setAnnouncement(`Welcome, ${data.candidateName}. Authentication verified. Starting your exam.`)
+        setIsAdminModalOpen(false)
+        setCandidateData(data.candidate)
+        setAdmissionState("verified")
+        setAnnouncement(
+          `Administrator override authorized for ${data.candidate.name}. Starting examination.`,
+        )
+
+        setTimeout(() => {
+          router.push(`/exam?sessionId=${encodeURIComponent(data.sessionId)}`)
+        }, 1500)
       }
     } catch {
-      setManualError("Network error verifying OTP. Please try again.")
+      setAdminError("Network communication error during administrator override.")
     } finally {
-      setManualLoading(false)
-    }
-  }
-
-  // ── 5. Dev Kiosk Simulator Trigger ─────────────────────────────────────────
-  async function simulateKioskScan(fingerprintId: number) {
-    try {
-      await fetch("/api/auth/fingerprint", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fingerprintId,
-          deviceId: DEFAULT_KIOSK_DEVICE_ID,
-        }),
-      })
-      // Trigger instant poll
-      pollStatus()
-    } catch (err) {
-      console.error("Simulation error:", err)
+      setAdminSubmitting(false)
     }
   }
 
@@ -221,286 +162,414 @@ export default function LoginPage() {
       <div className={styles.page}>
         <div className={styles.bgGlow} aria-hidden="true" />
 
-        {/* Screen Reader Announcement Live Region */}
+        {/* Screen Reader Live Region */}
         <div role="status" aria-live="polite" className="sr-only">
           {announcement}
         </div>
 
-        {/* Header */}
+        {/* Top Header */}
         <header className={styles.header}>
           <Link href="/" className={styles.brand} aria-label="Saksham Home">
             <span className={styles.logoBadge}>SK</span>
             <span className={styles.brandText}>SAKSHAM</span>
           </Link>
 
-          <div className={styles.kioskTag} aria-label={`Connected to ${DEFAULT_KIOSK_DEVICE_ID}`}>
-            <span className={styles.kioskDot} />
-            <span>Kiosk: {DEFAULT_KIOSK_DEVICE_ID}</span>
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+            <button
+              type="button"
+              className={styles.simBtnSecondary}
+              onClick={() => setShowOperatorPanel((prev) => !prev)}
+              aria-expanded={showOperatorPanel}
+            >
+              {showOperatorPanel ? "Hide Operator Panel" : "Show Operator Panel"}
+            </button>
+
+            <button
+              type="button"
+              className={styles.simBtn}
+              onClick={() => setIsAdminModalOpen(true)}
+            >
+              <ShieldIcon aria-hidden="true" /> Admin Override
+            </button>
           </div>
         </header>
 
         {/* Main Content Area */}
         <main id="main" className={styles.main}>
-          {/* ================================================================
-              STATE 1: WAITING STATE (Default)
-              ================================================================ */}
-          {uiState === "WAITING" && (
-            <div className={styles.card} role="region" aria-labelledby="waiting-heading">
-              {/* Concentric Pulsing Biometric Scanner Animation */}
-              <div
-                className={styles.scannerContainer}
-                role="img"
-                aria-label="Pulsing fingerprint scanner listening for thumb"
-              >
-                <div className={styles.pulseRing1} />
-                <div className={styles.pulseRing2} />
-                <div className={styles.pulseRing3} />
-                <div className={styles.sensorPad}>
-                  <div className={styles.scanline} />
-                  {/* Fingerprint SVG Icon */}
-                  <svg
-                    width="56"
-                    height="56"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.75"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
+          <div style={{ width: "100%", maxWidth: "600px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+            {/* Operator Hardware-Device Connection Interface */}
+            {showOperatorPanel && <OperatorDeviceControl />}
+
+            {/* ============================================================
+                STATE 1: DISCONNECTED STATE
+                ============================================================ */}
+            {admissionState === "disconnected" && (
+              <div className={styles.card} role="region" aria-labelledby="disconnected-heading">
+                <div className={styles.disconnectedCircle}>
+                  <AlertTriangleIcon size={38} aria-hidden="true" />
+                </div>
+
+                <div>
+                  <h1 id="disconnected-heading" className={styles.heading}>
+                    Fingerprint Reader Disconnected
+                  </h1>
+                  <p className={styles.subtext} style={{ marginTop: "0.5rem" }}>
+                    The Arduino optical fingerprint device is not connected to this station. The exam operator must connect the device, or an authorized invigilator can perform an override.
+                  </p>
+                </div>
+
+                <div className={styles.actionButtonGroup}>
+                  <button
+                    type="button"
+                    className={styles.btnPrimary}
+                    onClick={() => arduinoDeviceManager.connect({ baudRate: 57600 })}
                   >
-                    <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4" />
-                    <path d="M14 13.12c0 2.38 0 6.38-1 8.88" />
-                    <path d="M2 16h.01" />
-                    <path d="M21.8 16c.2-2 .131-5.354 0-6" />
-                    <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2" />
-                    <path d="M8.65 22c.21-.66.45-1.32.57-2" />
-                    <path d="M9 6.8a6 6 0 0 1 9 5.2v2" />
-                    <path d="M17 7.5a6 6 0 0 0-7.85-2.2" />
-                    <path d="M12 2a10 10 0 0 0-9.42 13.3" />
-                  </svg>
-                </div>
-              </div>
-
-              <div>
-                <h1 id="waiting-heading" className={styles.heading}>
-                  Place your thumb on the scanner
-                </h1>
-                <p className={styles.subtext}>
-                  Waiting for the kiosk to read your fingerprint…
-                </p>
-              </div>
-
-              <div className={styles.timerPill} aria-label={`Timeout in ${secondsRemaining} seconds`}>
-                <span>Sensor timeout in {secondsRemaining}s</span>
-              </div>
-
-              {/* Always-visible manual fallback link */}
-              <button
-                type="button"
-                className={styles.linkFallback}
-                onClick={() => setUiState("MANUAL")}
-              >
-                <KeyboardIcon aria-hidden="true" />
-                Use roll number instead
-              </button>
-            </div>
-          )}
-
-          {/* ================================================================
-              STATE 2: SUCCESS STATE
-              ================================================================ */}
-          {uiState === "SUCCESS" && (
-            <div className={styles.card} role="alert" aria-labelledby="success-heading">
-              <div className={styles.successCircle}>
-                <CheckIcon size={46} aria-hidden="true" />
-              </div>
-
-              <div>
-                <h1 id="success-heading" className={styles.heading}>
-                  Welcome,
-                  <span className={styles.successCandidate}>{candidateName}</span>
-                </h1>
-                <p className={styles.subtext} style={{ marginTop: "0.5rem" }}>
-                  Starting your exam…
-                </p>
-              </div>
-
-              <div className={styles.timerPill} style={{ color: "#4fd1a5" }}>
-                <span>✓ Biometric matched on {DEFAULT_KIOSK_DEVICE_ID}</span>
-              </div>
-            </div>
-          )}
-
-          {/* ================================================================
-              STATE 3: FAIL / TIMEOUT STATE
-              ================================================================ */}
-          {uiState === "FAIL" && (
-            <div className={styles.card} role="alert" aria-labelledby="fail-heading">
-              <div className={styles.failCircle}>
-                <AlertTriangleIcon size={42} aria-hidden="true" />
-              </div>
-
-              <div>
-                <h1 id="fail-heading" className={styles.heading}>
-                  No scan detected
-                </h1>
-                <p className={styles.failTitleHinglish}>
-                  Thumb match nahi hua
-                </p>
-                <p className={styles.subtext} style={{ marginTop: "0.5rem" }}>
-                  The kiosk couldn&apos;t detect your thumb print. Ensure your finger is centered on the optical prism.
-                </p>
-              </div>
-
-              <div className={styles.actionButtonGroup}>
-                <button
-                  type="button"
-                  className={styles.btnPrimary}
-                  onClick={() => setUiState("WAITING")}
-                >
-                  <ReplayIcon aria-hidden="true" /> Try again
-                </button>
-
-                <button
-                  type="button"
-                  className={styles.btnSecondary}
-                  onClick={() => setUiState("MANUAL")}
-                >
-                  <KeyboardIcon aria-hidden="true" /> Use roll number instead
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ================================================================
-              MANUAL LOGIN FALLBACK (ROLL NUMBER + OTP)
-              ================================================================ */}
-          {uiState === "MANUAL" && (
-            <div className={styles.card} role="region" aria-labelledby="manual-heading">
-              <div style={{ textAlign: "center" }}>
-                <h1 id="manual-heading" className={styles.heading}>
-                  Manual Roll Number Login
-                </h1>
-                <p className={styles.subtext} style={{ marginTop: "0.25rem" }}>
-                  Reliable alternative when biometric kiosk is unavailable.
-                </p>
-              </div>
-
-              {manualError && (
-                <div className={styles.formError} role="alert">
-                  {manualError}
-                </div>
-              )}
-
-              {!otpSent ? (
-                <form className={styles.manualForm} onSubmit={handleSendOtp}>
-                  <div className={styles.fieldGroup}>
-                    <label htmlFor="rollNumberInput" className={styles.fieldLabel}>
-                      Candidate Roll Number
-                    </label>
-                    <input
-                      id="rollNumberInput"
-                      type="text"
-                      className={styles.input}
-                      value={rollNumber}
-                      onChange={(e) => setRollNumber(e.target.value)}
-                      placeholder="e.g. SAK-2026-001"
-                      required
-                      autoFocus
-                    />
-                  </div>
+                    Connect Arduino Scanner
+                  </button>
 
                   <button
-                    type="submit"
-                    className={styles.btnPrimary}
-                    disabled={manualLoading}
+                    type="button"
+                    className={styles.btnSecondary}
+                    onClick={() => setIsAdminModalOpen(true)}
                   >
-                    {manualLoading ? "Sending OTP…" : "Send OTP"}
+                    <ShieldIcon aria-hidden="true" /> Administrator Fallback Override
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================
+                STATE 2: CONNECTING STATE
+                ============================================================ */}
+            {admissionState === "connecting" && (
+              <div className={styles.card} role="region" aria-labelledby="connecting-heading">
+                <div className={styles.verifyingCircle}>
+                  <ReplayIcon size={36} aria-hidden="true" style={{ animation: "spin 2s linear infinite" }} />
+                </div>
+
+                <div>
+                  <h1 id="connecting-heading" className={styles.heading}>
+                    Connecting to Arduino Reader
+                  </h1>
+                  <p className={styles.subtext} style={{ marginTop: "0.5rem" }}>
+                    Handshaking with Arduino optical prism via {deviceInfo.baudRate} baud serial interface…
+                  </p>
+                </div>
+
+                <div className={styles.timerPill}>
+                  <span>Initializing R307/AS608 optical sensor…</span>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================
+                STATE 3: READY STATE (Waiting for Candidate Finger)
+                ============================================================ */}
+            {admissionState === "ready" && (
+              <div className={styles.card} role="region" aria-labelledby="ready-heading">
+                {/* Visible Concentric Wave Pulsing Scanner */}
+                <div
+                  className={styles.scannerContainer}
+                  role="img"
+                  aria-label="Pulsing optical scanner actively listening for fingerprint"
+                >
+                  <div className={styles.pulseRing1} />
+                  <div className={styles.pulseRing2} />
+                  <div className={styles.pulseRing3} />
+                  <div className={styles.sensorPad}>
+                    <div className={styles.scanline} />
+                    <svg
+                      width="56"
+                      height="56"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4" />
+                      <path d="M14 13.12c0 2.38 0 6.38-1 8.88" />
+                      <path d="M2 16h.01" />
+                      <path d="M21.8 16c.2-2 .131-5.354 0-6" />
+                      <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2" />
+                      <path d="M8.65 22c.21-.66.45-1.32.57-2" />
+                      <path d="M9 6.8a6 6 0 0 1 9 5.2v2" />
+                      <path d="M17 7.5a6 6 0 0 0-7.85-2.2" />
+                      <path d="M12 2a10 10 0 0 0-9.42 13.3" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div>
+                  <h1 id="ready-heading" className={styles.heading}>
+                    Place your thumb on the scanner
+                  </h1>
+                  <p className={styles.subtext}>
+                    Optical prism active. Candidate will be admitted after biometric match and exam eligibility confirmation.
+                  </p>
+                </div>
+
+                {/* Explicit indicator of Real vs Simulated Mode */}
+                {deviceInfo.isSimulated ? (
+                  <div className={styles.infoBox} style={{ color: "#fcd34d", borderColor: "rgba(245, 158, 11, 0.3)" }}>
+                    <strong>Simulated Demo Mode:</strong> Optical reader is emulated. Real biometric verification requires a physical Arduino.
+                  </div>
+                ) : (
+                  <div className={styles.timerPill} style={{ color: "#4fd1a5" }}>
+                    <span>✓ Physical Arduino Optical Reader Online ({deviceInfo.portName})</span>
+                  </div>
+                )}
+
+                <div className={styles.actionButtonGroup}>
+                  <button
+                    type="button"
+                    className={styles.btnPrimary}
+                    onClick={handleTriggerScan}
+                  >
+                    Scan Fingerprint &amp; Verify Eligibility
                     <ArrowRightIcon aria-hidden="true" />
                   </button>
-                </form>
-              ) : (
-                <form className={styles.manualForm} onSubmit={handleVerifyOtp}>
-                  <div className={styles.fieldGroup}>
-                    <label htmlFor="otpInput" className={styles.fieldLabel}>
-                      Enter 6-Digit OTP
-                    </label>
-                    <input
-                      id="otpInput"
-                      type="text"
-                      className={styles.input}
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                      placeholder="Enter 6-digit OTP"
-                      maxLength={6}
-                      required
-                      autoFocus
-                    />
-                    {demoOtpHint && (
-                      <p className={styles.infoBox}>
-                        Demo Test OTP: <strong>{demoOtpHint}</strong>
-                      </p>
-                    )}
-                  </div>
 
+                  <button
+                    type="button"
+                    className={styles.linkFallback}
+                    onClick={() => setIsAdminModalOpen(true)}
+                  >
+                    <ShieldIcon aria-hidden="true" />
+                    Authorized invigilator override
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================
+                STATE 4: VERIFYING STATE
+                ============================================================ */}
+            {admissionState === "verifying" && (
+              <div className={styles.card} role="region" aria-labelledby="verifying-heading">
+                <div className={styles.verifyingCircle}>
+                  <div className={styles.pulseDot} style={{ width: "24px", height: "24px", background: "#60a5fa" }} />
+                </div>
+
+                <div>
+                  <h1 id="verifying-heading" className={styles.heading}>
+                    Verifying Candidate Admission…
+                  </h1>
+                  <p className={styles.subtext} style={{ marginTop: "0.5rem" }}>
+                    1. Analyzing fingerprint minutiae on optical sensor…<br />
+                    2. Verifying candidate enrollment &amp; exam eligibility…
+                  </p>
+                </div>
+
+                <div className={styles.timerPill}>
+                  <span>Two-tier admission gate in progress</span>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================
+                STATE 5: VERIFICATION FAILED (Biometric or Eligibility Failure)
+                ============================================================ */}
+            {admissionState === "verification_failed" && (
+              <div className={styles.card} role="alert" aria-labelledby="failed-heading">
+                <div className={styles.failCircle}>
+                  <AlertTriangleIcon size={40} aria-hidden="true" />
+                </div>
+
+                <div>
+                  <h1 id="failed-heading" className={styles.heading}>
+                    Admission Verification Failed
+                  </h1>
+                  {eligibilityStatus && (
+                    <div style={{ marginTop: "0.5rem" }}>
+                      <span className={`${styles.eligibilityTag} ${styles.eligibilityRejected}`}>
+                        Eligibility Status: {eligibilityStatus.toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  <p className={styles.subtext} style={{ marginTop: "0.6rem" }}>
+                    {errorMessage || "Biometric fingerprint could not be matched or exam eligibility was rejected."}
+                  </p>
+                </div>
+
+                <div className={styles.actionButtonGroup}>
+                  <button
+                    type="button"
+                    className={styles.btnPrimary}
+                    onClick={() => setAdmissionState("ready")}
+                  >
+                    <ReplayIcon aria-hidden="true" /> Try Again
+                  </button>
+
+                  <button
+                    type="button"
+                    className={styles.btnSecondary}
+                    onClick={() => setIsAdminModalOpen(true)}
+                  >
+                    <ShieldIcon aria-hidden="true" /> Use Administrator Override
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================
+                STATE 6: VERIFIED STATE (Both Biometric & Eligibility Confirmed)
+                ============================================================ */}
+            {admissionState === "verified" && candidateData && (
+              <div className={styles.card} role="alert" aria-labelledby="verified-heading">
+                <div className={styles.successCircle}>
+                  <CheckIcon size={46} aria-hidden="true" />
+                </div>
+
+                <div>
+                  <h1 id="verified-heading" className={styles.heading}>
+                    Welcome,
+                    <span className={styles.successCandidate}>{candidateData.name}</span>
+                  </h1>
+                  <p className={styles.subtext} style={{ marginTop: "0.4rem" }}>
+                    Fingerprint verified &amp; exam eligibility confirmed. Starting examination…
+                  </p>
+                </div>
+
+                {/* Candidate Credential & Eligibility Card */}
+                <div className={styles.candidateCard}>
+                  <div className={styles.candidateRow}>
+                    <span className={styles.candidateKey}>Roll Number:</span>
+                    <span className={styles.candidateVal}>{candidateData.rollNumber}</span>
+                  </div>
+                  <div className={styles.candidateRow}>
+                    <span className={styles.candidateKey}>Category:</span>
+                    <span className={styles.candidateVal}>{candidateData.category}</span>
+                  </div>
+                  <div className={styles.candidateRow}>
+                    <span className={styles.candidateKey}>Exam Code:</span>
+                    <span className={styles.candidateVal}>{candidateData.examCode}</span>
+                  </div>
+                  <div className={styles.candidateRow}>
+                    <span className={styles.candidateKey}>Eligibility:</span>
+                    <span className={`${styles.eligibilityTag} ${styles.eligibilityEligible}`}>
+                      ✓ ADMITTED &amp; CONFIRMED
+                    </span>
+                  </div>
+                </div>
+
+                <div className={styles.timerPill} style={{ color: "#4fd1a5" }}>
+                  <span>✓ Authenticated via {deviceInfo.adapterName}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+
+        {/* ================================================================
+            AUTHORIZED ADMINISTRATOR OVERRIDE MODAL
+            ================================================================ */}
+        {isAdminModalOpen && (
+          <div
+            className={styles.modalOverlay}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-modal-title"
+          >
+            <div className={styles.modalContent}>
+              <div className={styles.modalHeader}>
+                <h2 id="admin-modal-title" className={styles.modalTitle}>
+                  <ShieldIcon aria-hidden="true" /> Administrator Override
+                </h2>
+                <button
+                  type="button"
+                  className={styles.modalCloseBtn}
+                  onClick={() => setIsAdminModalOpen(false)}
+                  aria-label="Close override modal"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p className={styles.subtext} style={{ textAlign: "left" }}>
+                Authorized invigilator fallback for hardware device failures or candidate biometric read errors.
+              </p>
+
+              <div className={styles.auditDisclaimer}>
+                <strong>Mandatory Audit Trail:</strong> Every administrator override is logged in the MongoDB database with timestamp, candidate roll number, and invigilator reason.
+              </div>
+
+              {adminError && (
+                <div className={styles.formError} role="alert">
+                  {adminError}
+                </div>
+              )}
+
+              <form className={styles.manualForm} onSubmit={handleAdminOverride}>
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="adminRollInput" className={styles.fieldLabel}>
+                    Candidate Roll Number:
+                  </label>
+                  <input
+                    id="adminRollInput"
+                    type="text"
+                    className={styles.input}
+                    value={adminRollNumber}
+                    onChange={(e) => setAdminRollNumber(e.target.value)}
+                    placeholder="e.g. SAK-2026-001"
+                    required
+                  />
+                </div>
+
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="adminPinInput" className={styles.fieldLabel}>
+                    Administrator Authorization PIN:
+                  </label>
+                  <input
+                    id="adminPinInput"
+                    type="password"
+                    className={styles.input}
+                    value={adminPin}
+                    onChange={(e) => setAdminPin(e.target.value)}
+                    placeholder="Enter Admin Authorization PIN"
+                    required
+                  />
+                  <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
+                    Demo Authorization PIN: <code>SAKSHAM-ADMIN-2026</code> or <code>admin123</code>
+                  </span>
+                </div>
+
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="adminReasonInput" className={styles.fieldLabel}>
+                    Invigilator Justification / Reason:
+                  </label>
+                  <textarea
+                    id="adminReasonInput"
+                    className={styles.input}
+                    rows={2}
+                    value={adminReason}
+                    onChange={(e) => setAdminReason(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem" }}>
+                  <button
+                    type="button"
+                    className={styles.btnSecondary}
+                    onClick={() => setIsAdminModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
                   <button
                     type="submit"
                     className={styles.btnPrimary}
-                    disabled={manualLoading}
+                    disabled={adminSubmitting}
                   >
-                    {manualLoading ? "Verifying…" : "Verify OTP & Start Exam"}
-                    <ShieldIcon aria-hidden="true" />
+                    {adminSubmitting ? "Authorizing…" : "Authorize & Admit"}
                   </button>
-                </form>
-              )}
-
-              {/* Link back to Thumb Scan */}
-              <button
-                type="button"
-                className={styles.linkFallback}
-                onClick={() => {
-                  setUiState("WAITING")
-                  setOtpSent(false)
-                  setManualError(null)
-                }}
-              >
-                ← Back to thumb scanner
-              </button>
+                </div>
+              </form>
             </div>
-          )}
-        </main>
-
-        {/* ==================================================================
-            DEV / EVALUATION KIOSK SIMULATOR (NON-INTRUSIVE TEST HELPER)
-            ================================================================== */}
-        <footer className={styles.simulatorBar} aria-label="Kiosk simulation controls">
-          <span>ESP32 Hardware Simulator:</span>
-          <button
-            type="button"
-            className={styles.simBtn}
-            onClick={() => simulateKioskScan(1)}
-            title="Simulate fingerprint ID 1 (Aarav Sharma)"
-          >
-            Simulate ID #1 (Aarav)
-          </button>
-          <button
-            type="button"
-            className={styles.simBtn}
-            onClick={() => simulateKioskScan(2)}
-            title="Simulate fingerprint ID 2 (Priya Patel)"
-          >
-            Simulate ID #2 (Priya)
-          </button>
-          <button
-            type="button"
-            className={styles.simBtnSecondary}
-            onClick={() => setUiState("FAIL")}
-            title="Force timeout fail state"
-          >
-            Force Timeout
-          </button>
-        </footer>
+          </div>
+        )}
       </div>
     </>
   )
